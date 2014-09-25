@@ -169,7 +169,7 @@ int main(void) {
                                              SYSCTL_CFG_VCO_480), 120000000);
 
 	//
-	//	Create a task to blink LED
+	//	Create a task to blink LED Test
 	//
 	xTaskCreate( Task_BlinkLED, "Blinky", 512, NULL, 1, NULL );
 
