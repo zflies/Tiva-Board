@@ -1,8 +1,8 @@
 /*
- * Task_BMP_21_Pressure_Handler.c
+ * Task_MPU9150_Accel_Handler.c
  *
- *  Created on: August 7, 2014
- *      Author: gminden
+ *  Created on: Sep 25, 2014
+ *      Author: zflies
  */
 
 #include "inc/hw_ints.h"
@@ -19,14 +19,15 @@
 #include "drivers/uartstdio.h"
 
 #include "sensorlib/i2cm_drv.h"
-#include "sensorlib/hw_bmp180.h"
-#include "sensorlib/bmp180.h"
+#include "sensorlib/hw_MPU9150.h"
+#include "sensorlib/MPU9150.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 
 #include "stdio.h"
+
 
 //*****************************************************************************
 //
@@ -49,37 +50,37 @@ extern tI2CMInstance* psI2C7_Instance;
 extern bool bI2C7Initialized;
 
 //
-//	BMP180 variables
-//	The BMP180 control block
+//	MPU9150 variables
+//	The MPU9150 control block
 //
-tBMP180 sBMP180;
+tMPU9150 sMPU9150;
 
-uint32_t ui8BMP180Status = 0;
+uint32_t ui8MPU9150Status = 0;
 
 //
 // A boolean that is set when an I2C transaction is completed.
 //
-volatile bool g_bBMP180SimpleDone = true;
+volatile bool g_bMPU9150SimpleDone = true;
 
 //
-//	The number of BMP180 callbacks taken.
+//	The number of MPU9150 callbacks taken.
 //
-uint32_t ui32_BMP180_NbrCallbacks = 0;
+uint32_t ui32_MPU9150_NbrCallbacks = 0;
 
 //
 //	Semaphore to indicate completion of an I/O operation
 //
-SemaphoreHandle_t BMP180_Semaphore = NULL;
+SemaphoreHandle_t MPU9150_Semaphore = NULL;
 
 //
-// The function that is provided by this example as a callback when BMP180
+// The function that is provided by this example as a callback when MPU9150
 // transactions have completed.
 //
-void BMP180SimpleCallback( void *pvData, uint_fast8_t ui8Status  ) {
+void MPU9150SimpleCallback( void *pvData, uint_fast8_t ui8Status  ) {
 
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	ui32_BMP180_NbrCallbacks++;
+	ui32_MPU9150_NbrCallbacks++;
 
 	//
 	// See if an error occurred.
@@ -88,42 +89,42 @@ void BMP180SimpleCallback( void *pvData, uint_fast8_t ui8Status  ) {
 		//
 		// An error occurred, so handle it here if required.
 		//
-		UARTprintf( ">>>>BMP180 Error: %02X\n", I2CM_STATUS_SUCCESS );
+		printf( ">>>>MPU9150 Error: %02X\n", I2CM_STATUS_SUCCESS );
 	}
 	//
 	// Indicate that the I2C transaction has completed.
 	//
-	g_bBMP180SimpleDone = true;
+	g_bMPU9150SimpleDone = true;
 
 	//
-	//	"Give" the BMP180_Semaphore
+	//	"Give" the MPU9150_Semaphore
 	//
-	xSemaphoreGiveFromISR( BMP180_Semaphore, &xHigherPriorityTaskWoken );
+	xSemaphoreGiveFromISR( MPU9150_Semaphore, &xHigherPriorityTaskWoken );
 
 }
 
 //================================================================
 //
-// The simple BMP180 master driver example.
+// The simple MPU9150 master driver example.
 //
-extern void Task_BMP180_Handler( void ) {
+extern void Task_MPU9150_Handler( void ) {
 
 	//
 	//	No GPIO Setup. Assume I2C7 is setup
 	//
 
 	//
-	// The BMP180 example.
+	// The MPU9150 example.
 	//
 
-	uint_fast16_t	BMP_Temperature = 0;
-	uint32_t		BMP_Pressure = 1;
-
+	uint_fast16_t		MPU_ACCEL_X = 1;
+	uint_fast16_t		MPU_ACCEL_Y = 1;
+	uint_fast16_t		MPU_ACCEL_Z = 1;
 
 	//
-	//	Initialize BMP180_Semaphore
+	//	Initialize MPU9150_Semaphore
 	//
-	BMP180_Semaphore = xSemaphoreCreateBinary( );
+	MPU9150_Semaphore = xSemaphoreCreateBinary( );
 
 
 	//
@@ -134,12 +135,12 @@ extern void Task_BMP180_Handler( void ) {
 	}
 
 	//
-	// Initialize the BMP180.
+	// Initialize the MPU9150.
 	//
-	g_bBMP180SimpleDone = false;
-	ui8BMP180Status = BMP180Init(&sBMP180, psI2C7_Instance, 0x77, BMP180SimpleCallback, 0);
+	g_bMPU9150SimpleDone = false;
+	ui8MPU9150Status = MPU9150Init(&sMPU9150, psI2C7_Instance, 0x68, MPU9150SimpleCallback, &sMPU9150);
 
-	xSemaphoreTake( BMP180_Semaphore, portMAX_DELAY );
+	xSemaphoreTake( MPU9150_Semaphore, portMAX_DELAY );
 
 	//
 	//	Enable TM4C Floating Point Unit
@@ -154,49 +155,45 @@ extern void Task_BMP180_Handler( void ) {
     portTASK_USES_FLOATING_POINT();
 
 
-	UARTprintf( ">>>>BMP180: Initialized!\n" );
+	printf( ">>>>MPU9150: Initialized!\n" );
 
 	//
-	// Configure the BMP180 for 2x oversampling.
+	// Configure the MPU9150 for 2x oversampling.
 	//
-	g_bBMP180SimpleDone = false;
-	BMP180ReadModifyWrite( &sBMP180, BMP180_O_CTRL_MEAS,
-			~BMP180_CTRL_MEAS_OSS_M, BMP180_CTRL_MEAS_OSS_2,
-			BMP180SimpleCallback, 0 );
+	g_bMPU9150SimpleDone = false;
+	MPU9150ReadModifyWrite( &sMPU9150, MPU9150_O_ACCEL_CONFIG,
+			~MPU9150_ACCEL_CONFIG_AFS_SEL_M, MPU9150_ACCEL_CONFIG_AFS_SEL_4G,
+			MPU9150SimpleCallback, 0);
 
-	xSemaphoreTake( BMP180_Semaphore, portMAX_DELAY );
-	UARTprintf( ">>>>BMP180: Configured!\n" );
 
+	xSemaphoreTake( MPU9150_Semaphore, portMAX_DELAY );
+	printf( ">>>>MPU9150: Configured!\n" );
 
 	//
-	// Loop forever reading data from the BMP180. Typically, this process
+	// Loop forever reading data from the MPU9150. Typically, this process
 	// would be done in the background, but for the purposes of this example,
 	// it is shown in an infinite loop.
     while ( 1 ) {
 
     	//
-    	// Request a reading from the BMP180.
+    	// Request a reading from the MPU9150.
     	//
-    	g_bBMP180SimpleDone = false;
-    	BMP180DataRead( &sBMP180, BMP180SimpleCallback, 0 );
+    	g_bMPU9150SimpleDone = false;
+    	MPU9150DataRead( &sMPU9150, MPU9150SimpleCallback, &sMPU9150 );
 
-    	xSemaphoreTake( BMP180_Semaphore, portMAX_DELAY );
-    	UARTprintf( ">>>>BMP180: Data Read!\n" );
+    	xSemaphoreTake( MPU9150_Semaphore, portMAX_DELAY );
+    	UARTprintf( ">>>>MPU9150: Data Read!\n" );
 
     	//
-    	// Get the new pressure and temperature reading.
+    	// Get the new accelerameter reading.
     	//
-    	BMP180DataPressureGetRaw( &sBMP180, &BMP_Pressure );
-    	BMP180DataTemperatureGetRaw( &sBMP180, &BMP_Temperature );
+    	MPU9150DataAccelGetRaw( &sMPU9150, &MPU_ACCEL_X, &MPU_ACCEL_Y, &MPU_ACCEL_Z );
 
-//    	PrintfStatus = sprintf( BMPPrintString, ">>>>BMP180: Temp: %7.2f, Pressure: %7.2f\n",
-//    						BMP_Temperature, BMP_Pressure );
+//    	PrintfStatus = sprintf( BMPPrintString, ">>>>MPU9150: Temp: %7.2f, Pressure: %7.2f\n",
+//    						BMP_Temperature, MPU_ACCEL_X );
 //    	UARTwrite( BMPPrintString, 64 );
 //
-    	printf( ">>>>BMP180: Temp: %d, Pressure: %d\n",
-    					BMP_Temperature, BMP_Pressure );
-//    	printf( ">>>>BMP180: Temp: %8.3f, Pressure: %8.3f\n",
-//    	    					1.25, 3.76 );
+    	printf( ">>>>MPU9150: X: %d, Y: %d, Z: %d\n", MPU_ACCEL_X, MPU_ACCEL_Y, MPU_ACCEL_Z );
 
     	//
     	// Do something with the new pressure and temperature readings.

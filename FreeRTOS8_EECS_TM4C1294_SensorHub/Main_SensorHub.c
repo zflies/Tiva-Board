@@ -156,7 +156,8 @@ extern void Task_AsmCompute( void *pvParameters );
 extern void Task_TimerInterrupt( void *pvParameters );
 extern void Task_I2C7_Handler( void *pvParameters );
 extern void Task_ISL_29023_LightSensor( void *pvParameters );
-extern void Task_BMP180_Handler( void *pvParameters );
+//extern void Task_BMP180_Handler( void *pvParameters );
+extern void Task_MPU9150_Handler( void *pvParameters );
 
 int main(void) {
 
@@ -186,7 +187,12 @@ int main(void) {
 	//
 	//	Create a task to monitor BMP180 Pressure/Temperature Sensor.
 	//
-	xTaskCreate( Task_BMP180_Handler, "BMP180_Handler", 1024, NULL, 2, NULL );
+	//xTaskCreate( Task_BMP180_Handler, "BMP180_Handler", 1024, NULL, 2, NULL );
+
+	//
+	//	Create a task to monitor MPU9150 Accelerameter Sensor.
+	//
+	xTaskCreate( Task_MPU9150_Handler, "MPU9150_Handler", 1024, NULL, 2, NULL );
 
 	Task_PrintData_Init();
 
