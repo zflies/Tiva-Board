@@ -140,7 +140,7 @@ extern void Task_MPU9150_Handler( void ) {
 	g_bMPU9150SimpleDone = false;
 	ui8MPU9150Status = MPU9150Init(&sMPU9150, psI2C7_Instance, 0x68, MPU9150SimpleCallback, &sMPU9150);
 
-	xSemaphoreTake( MPU9150_Semaphore, portMAX_DELAY );
+	//xSemaphoreTake( MPU9150_Semaphore, portMAX_DELAY );
 
 	//
 	//	Enable TM4C Floating Point Unit
@@ -162,7 +162,7 @@ extern void Task_MPU9150_Handler( void ) {
 	//
 	g_bMPU9150SimpleDone = false;
 	MPU9150ReadModifyWrite( &sMPU9150, MPU9150_O_ACCEL_CONFIG,
-			~MPU9150_ACCEL_CONFIG_AFS_SEL_M, MPU9150_ACCEL_CONFIG_AFS_SEL_4G,
+			~MPU9150_ACCEL_CONFIG_AFS_SEL_M, MPU9150_ACCEL_CONFIG_AFS_SEL_4G | MPU9150_ACCEL_CONFIG_ACCEL_HPF_5HZ,
 			MPU9150SimpleCallback, 0);
 
 
@@ -182,24 +182,19 @@ extern void Task_MPU9150_Handler( void ) {
     	MPU9150DataRead( &sMPU9150, MPU9150SimpleCallback, &sMPU9150 );
 
     	xSemaphoreTake( MPU9150_Semaphore, portMAX_DELAY );
-    	UARTprintf( ">>>>MPU9150: Data Read!\n" );
 
     	//
     	// Get the new accelerameter reading.
     	//
     	MPU9150DataAccelGetRaw( &sMPU9150, &MPU_ACCEL_X, &MPU_ACCEL_Y, &MPU_ACCEL_Z );
 
-//    	PrintfStatus = sprintf( BMPPrintString, ">>>>MPU9150: Temp: %7.2f, Pressure: %7.2f\n",
-//    						BMP_Temperature, MPU_ACCEL_X );
-//    	UARTwrite( BMPPrintString, 64 );
-//
-    	printf( ">>>>MPU9150: X: %d, Y: %d, Z: %d\n", MPU_ACCEL_X, MPU_ACCEL_Y, MPU_ACCEL_Z );
+    	printf( "\nX: %d \t Y: %d", MPU_ACCEL_X, MPU_ACCEL_Y );
 
     	//
     	// Do something with the new pressure and temperature readings.
     	//
 
-    	vTaskDelay( (SysTickFrequency * 2000) / 1000 );
+    	vTaskDelay( (SysTickFrequency * 10) / 1000 );
     }
 
 }
